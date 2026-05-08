@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}InstaGuard AI - Instagram Fake Account Detector{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero {
+        text-align: center;
+        padding: 6rem 2rem 4rem;
+    }
+    .hero-badge {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 6px 16px; border-radius: 50px;
+        background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2);
+        font-size: 0.8rem; color: var(--accent); font-weight: 500;
+        margin-bottom: 2rem;
+    }
+    .hero-badge i { font-size: 0.7rem; }
+    .hero-title {
+        font-size: 3.5rem; font-weight: 800;
+        line-height: 1.15; margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, #e2e8f0, #818cf8, #a78bfa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .hero-sub {
+        font-size: 1.15rem; color: var(--text-dim);
+        max-width: 600px; margin: 0 auto 2.5rem;
+        line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .features { padding: 3rem 0; }
+    .feature-card {
+        background: var(--bg-card); border: 1px solid var(--border);
+        border-radius: 16px; padding: 2rem; text-align: center;
+        transition: all 0.3s;
+    }
+    .feature-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(99,102,241,0.3);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    }
+    .feature-icon {
+        width: 60px; height: 60px; border-radius: 14px; margin: 0 auto 1.25rem;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem;
+    }
+    .feature-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .feature-card p { font-size: 0.85rem; color: var(--text-dim); line-height: 1.6; }
+    .stats-row {
+        display: flex; justify-content: center; gap: 4rem;
+        padding: 3rem 0; margin-top: 2rem;
+        border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .stats-row .stat { text-align: center; }
+    .stats-row .stat-num {
+        font-size: 2.5rem; font-weight: 800; color: var(--accent);
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .stats-row .stat-desc {
+        font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;
+        letter-spacing: 1px; margin-top: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="hero animate-in">
+        <div class="hero-badge">
+            <i class="fas fa-circle" style="color: var(--green); font-size: 6px;"></i>
+            AI-Powered Detection System
+        </div>
+        <h1 class="hero-title">Detect Fake Instagram<br>Accounts Instantly</h1>
+        <p class="hero-sub">
+            Using machine learning to analyze 11 profile features and identify
+            fake Instagram accounts with up to <strong style="color: var(--green);">91.67% accuracy</strong>.
+        </p>
+        <div class="hero-actions">
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-rocket"></i> Get Started Free
+            </a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline btn-lg">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+        </div>
+    </div>
+
+    <div class="stats-row animate-in">
+        <div class="stat">
+            <div class="stat-num">3</div>
+            <div class="stat-desc">ML Models</div>
+        </div>
+        <div class="stat">
+            <div class="stat-num">11</div>
+            <div class="stat-desc">Features Analyzed</div>
+        </div>
+        <div class="stat">
+            <div class="stat-num">91.67%</div>
+            <div class="stat-desc">Best Accuracy</div>
+        </div>
+        <div class="stat">
+            <div class="stat-num">696</div>
+            <div class="stat-desc">Profiles Trained</div>
+        </div>
+    </div>
+
+    <div class="features">
+        <div class="grid-3">
+            <div class="feature-card animate-in">
+                <div class="feature-icon" style="background: rgba(52,211,153,0.1); color: var(--green);">
+                    <i class="fas fa-tree"></i>
+                </div>
+                <h3>Random Forest</h3>
+                <p>Ensemble learning with 100 decision trees. Best performer at <strong>91.67%</strong> test accuracy with perfect training fit.</p>
+            </div>
+            <div class="feature-card animate-in" style="animation-delay: 0.1s;">
+                <div class="feature-icon" style="background: rgba(129,140,248,0.1); color: var(--accent);">
+                    <i class="fas fa-vector-square"></i>
+                </div>
+                <h3>Support Vector Machine</h3>
+                <p>Optimized SVM with GridSearch. Achieves <strong>87.50%</strong> test accuracy using hyperplane separation in scaled feature space.</p>
+            </div>
+            <div class="feature-card animate-in" style="animation-delay: 0.2s;">
+                <div class="feature-icon" style="background: rgba(251,191,36,0.1); color: var(--yellow);">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h3>Neural Network</h3>
+                <p>TensorFlow deep learning with 50→150→25→2 architecture. <strong>87.50%</strong> accuracy with dropout regularization.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - InstaGuard AI{% endblock %}
+{% block extra_css %}
+<style>
+    .page-header { margin-bottom: 2rem; }
+    .page-header h1 { font-size: 1.75rem; font-weight: 700; }
+    .page-header p { color: var(--text-dim); font-size: 0.9rem; margin-top: 4px; }
+    .model-card { padding: 1.5rem; }
+    .model-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+    .model-name { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .model-acc { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.5rem; }
+    .model-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem; }
+    .metric-item {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 0.8rem; padding: 8px 0;
+        border-bottom: 1px solid rgba(99,102,241,0.06);
+    }
+    .metric-label { color: var(--text-muted); }
+    .metric-value { font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+    .crown { color: var(--yellow); }
+    .section-title {
+        font-size: 1rem; font-weight: 600; margin-bottom: 1rem;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .section-title i { color: var(--accent); }
+    .empty-state {
+        text-align: center; padding: 3rem; color: var(--text-muted);
+    }
+    .empty-state i { font-size: 2rem; margin-bottom: 1rem; display: block; }
+    .quick-action {
+        display: flex; align-items: center; gap: 12px; padding: 14px;
+        border-radius: 10px; border: 1px solid var(--border);
+        text-decoration: none; color: var(--text); transition: all 0.2s;
+        margin-bottom: 8px;
+    }
+    .quick-action:hover {
+        border-color: var(--accent); background: rgba(99,102,241,0.05);
+    }
+    .quick-action i {
+        width: 36px; height: 36px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(99,102,241,0.1); color: var(--accent);
+    }
+    .quick-action span { font-size: 0.85rem; font-weight: 500; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header animate-in">
+        <h1>Welcome, {{ user.fullname }} 👋</h1>
+        <p>Your fake account detection dashboard</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid-4 animate-in" style="margin-bottom: 2rem;">
+        <div class="stat-card">
+            <div class="stat-icon">🔍</div>
+            <div class="stat-value" style="color: var(--accent);">{{ total_predictions }}</div>
+            <div class="stat-label">Total Scans</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🚫</div>
+            <div class="stat-value" style="color: var(--red);">{{ fake_count }}</div>
+            <div class="stat-label">Fake Found</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value" style="color: var(--green);">{{ real_count }}</div>
+            <div class="stat-label">Real Accounts</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🤖</div>
+            <div class="stat-value" style="color: var(--yellow);">3</div>
+            <div class="stat-label">AI Models</div>
+        </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom: 2rem;">
+        <!-- Model Comparison -->
+        <div style="grid-column: span 2;">
+            <div class="section-title"><i class="fas fa-trophy"></i> Model Performance Comparison</div>
+            <div class="grid-3">
+                {% for name, data in model_results.items() %}
+                <div class="card model-card animate-in" style="animation-delay: {{ loop.index0 * 0.1 }}s;">
+                    <div class="model-header">
+                        <div class="model-name">
+                            {% if name == 'Random Forest' %}
+                                <i class="fas fa-tree" style="color: var(--green);"></i>
+                            {% elif name == 'SVM' %}
+                                <i class="fas fa-vector-square" style="color: var(--accent);"></i>
+                            {% else %}
+                                <i class="fas fa-brain" style="color: var(--yellow);"></i>
+                            {% endif %}
+                            {{ name }}
+                            {% if data.test_accuracy == model_results.values()|map(attribute='test_accuracy')|max %}
+                                <span class="crown" title="Best Model"><i class="fas fa-crown"></i></span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="model-acc" style="color: {% if data.test_accuracy >= 90 %}var(--green){% elif data.test_accuracy >= 85 %}var(--accent){% else %}var(--yellow){% endif %};">
+                        {{ data.test_accuracy }}%
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">Test Accuracy</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ data.test_accuracy }}%;"></div>
+                    </div>
+                    <div class="model-metrics">
+                        <div class="metric-item">
+                            <span class="metric-label">Train</span>
+                            <span class="metric-value">{{ data.train_accuracy }}%</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">CV Score</span>
+                            <span class="metric-value">{{ data.cv_score }}%</span>
+                        </div>
+                        <div class="metric-item" style="grid-column: span 2;">
+                            <span class="metric-label">ROC AUC</span>
+                            <span class="metric-value">{{ data.roc_auc }}%</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <!-- Quick Actions -->
+        <div class="card animate-in">
+            <div class="card-title"><i class="fas fa-bolt"></i> Quick Actions</div>
+            <a href="{{ url_for('predict') }}" class="quick-action">
+                <i class="fas fa-search"></i>
+                <span>Scan New Account</span>
+            </a>
+            <a href="{{ url_for('history') }}" class="quick-action">
+                <i class="fas fa-clock-rotate-left"></i>
+                <span>View Full History</span>
+            </a>
+        </div>
+
+        <!-- Recent Predictions -->
+        <div class="card animate-in" style="animation-delay: 0.1s;">
+            <div class="card-title"><i class="fas fa-history"></i> Recent Scans</div>
+            {% if logs %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr><th>Model</th><th>Result</th><th>Confidence</th><th>Date</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs[:5] %}
+                            <tr>
+                                <td style="font-size: 0.8rem;">{{ log.model_used }}</td>
+                                <td>
+                                    <span class="badge {{ 'badge-fake' if log.result == 'FAKE' else 'badge-real' }}">
+                                        {{ log.result }}
+                                    </span>
+                                </td>
+                                <td class="mono" style="font-size: 0.8rem;">{{ log.confidence }}%</td>
+                                <td style="font-size: 0.75rem; color: var(--text-muted);">
+                                    {{ log.created_at.strftime('%b %d, %H:%M') }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    No scans yet. Start detecting!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

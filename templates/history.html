@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Prediction History - InstaGuard AI{% endblock %}
+{% block content %}
+<div class="container">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;" class="animate-in">
+        <div>
+            <h1 style="font-size: 1.75rem; font-weight: 700;">
+                <i class="fas fa-clock-rotate-left" style="color: var(--accent);"></i> Prediction History
+            </h1>
+            <p style="color: var(--text-dim); font-size: 0.9rem; margin-top: 4px;">
+                {{ logs|length }} total prediction{{ 's' if logs|length != 1 }}
+            </p>
+        </div>
+        <a href="{{ url_for('predict') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Scan
+        </a>
+    </div>
+
+    <div class="card animate-in">
+        {% if logs %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Model</th>
+                        <th>Result</th>
+                        <th>Confidence</th>
+                        <th>Posts</th>
+                        <th>Followers</th>
+                        <th>Follows</th>
+                        <th>Profile Pic</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    {% set data = log.input_data | tojson | default('{}') %}
+                    <tr>
+                        <td class="mono" style="color: var(--text-muted); font-size: 0.8rem;">{{ loop.index }}</td>
+                        <td>
+                            {% if 'Random' in log.model_used %}
+                                <i class="fas fa-tree" style="color: var(--green);"></i>
+                            {% elif 'SVM' in log.model_used %}
+                                <i class="fas fa-vector-square" style="color: var(--accent);"></i>
+                            {% else %}
+                                <i class="fas fa-brain" style="color: var(--yellow);"></i>
+                            {% endif %}
+                            <span style="font-size: 0.8rem;">{{ log.model_used }}</span>
+                        </td>
+                        <td>
+                            <span class="badge {{ 'badge-fake' if log.result == 'FAKE' else 'badge-real' }}">
+                                {{ '🚫' if log.result == 'FAKE' else '✅' }} {{ log.result }}
+                            </span>
+                        </td>
+                        <td class="mono" style="font-size: 0.85rem; font-weight: 600;
+                            color: {{ 'var(--red)' if log.result == 'FAKE' else 'var(--green)' }};">
+                            {{ log.confidence }}%
+                        </td>
+                        {% set inp = log.input_data | default('{}') %}
+                        <td class="mono" style="font-size: 0.8rem;">
+                            {% if inp and '{' in inp %}
+                                {{ (inp | from_json).get('posts', '-') if inp else '-' }}
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="mono" style="font-size: 0.8rem;">
+                            {% if inp and '{' in inp %}
+                                {{ (inp | from_json).get('followers', '-') if inp else '-' }}
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="mono" style="font-size: 0.8rem;">
+                            {% if inp and '{' in inp %}
+                                {{ (inp | from_json).get('follows', '-') if inp else '-' }}
+                            {% else %}-{% endif %}
+                        </td>
+                        <td style="font-size: 0.8rem;">
+                            {% if inp and '{' in inp %}
+                                {{ '✅' if (inp | from_json).get('profile_pic', 0) else '❌' }}
+                            {% else %}-{% endif %}
+                        </td>
+                        <td style="font-size: 0.75rem; color: var(--text-muted);">
+                            {{ log.created_at.strftime('%b %d, %Y %H:%M') }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 4rem 2rem; color: var(--text-muted);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text);">No Predictions Yet</h3>
+            <p style="font-size: 0.9rem; margin-bottom: 1.5rem;">Start scanning Instagram profiles to build your history.</p>
+            <a href="{{ url_for('predict') }}" class="btn btn-primary">
+                <i class="fas fa-search"></i> Scan Your First Account
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

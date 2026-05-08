@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+{% block title %}Detect Fake Account - InstaGuard AI{% endblock %}
+{% block extra_css %}
+<style>
+    .page-header { margin-bottom: 2rem; }
+    .page-header h1 { font-size: 1.75rem; font-weight: 700; }
+    .page-header p { color: var(--text-dim); font-size: 0.9rem; margin-top: 4px; }
+    .feature-section {
+        margin-bottom: 1.5rem;
+    }
+    .feature-section-title {
+        font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 1px; color: var(--accent); margin-bottom: 1rem;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .feature-section-title::after {
+        content: ''; flex: 1; height: 1px;
+        background: linear-gradient(90deg, var(--border), transparent);
+    }
+    .input-help {
+        font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;
+    }
+    .result-section { margin-top: 2rem; }
+    .example-btns {
+        display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+    .example-btn {
+        padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 500;
+        cursor: pointer; transition: all 0.2s; border: 1px solid var(--border);
+        background: rgba(15,23,42,0.5); color: var(--text-dim);
+    }
+    .example-btn:hover { border-color: var(--accent); color: var(--text); }
+    .example-btn.real-ex { border-color: rgba(52,211,153,0.3); color: var(--green); }
+    .example-btn.fake-ex { border-color: rgba(248,113,113,0.3); color: var(--red); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header animate-in">
+        <h1><i class="fas fa-search" style="color: var(--accent);"></i> Detect Fake Account</h1>
+        <p>Enter Instagram profile features to check if an account is real or fake</p>
+    </div>
+
+    <div class="grid-2">
+        <div>
+            <div class="card animate-in">
+                <div class="card-title"><i class="fas fa-sliders"></i> Profile Features</div>
+
+                <!-- Example Buttons -->
+                <div class="example-btns">
+                    <button class="example-btn real-ex" onclick="fillExample('real1')">
+                        <i class="fas fa-check-circle"></i> Real Example 1
+                    </button>
+                    <button class="example-btn real-ex" onclick="fillExample('real2')">
+                        <i class="fas fa-check-circle"></i> Real Example 2
+                    </button>
+                    <button class="example-btn fake-ex" onclick="fillExample('fake1')">
+                        <i class="fas fa-times-circle"></i> Fake Example 1
+                    </button>
+                    <button class="example-btn fake-ex" onclick="fillExample('fake2')">
+                        <i class="fas fa-times-circle"></i> Fake Example 2
+                    </button>
+                </div>
+
+                <form method="POST" id="predictForm">
+                    <!-- Profile Info Section -->
+                    <div class="feature-section">
+                        <div class="feature-section-title"><i class="fas fa-user"></i> Profile Information</div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Has Profile Picture?</label>
+                                <div class="toggle-group">
+                                    <label class="toggle-option" id="pic-yes">
+                                        <input type="radio" name="profile_pic" value="1" checked> ✅ Yes
+                                    </label>
+                                    <label class="toggle-option" id="pic-no">
+                                        <input type="radio" name="profile_pic" value="0"> ❌ No
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Private Account?</label>
+                                <div class="toggle-group">
+                                    <label class="toggle-option" id="priv-yes">
+                                        <input type="radio" name="private" value="1"> 🔒 Yes
+                                    </label>
+                                    <label class="toggle-option" id="priv-no">
+                                        <input type="radio" name="private" value="0" checked> 🌐 No
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Has External URL?</label>
+                                <div class="toggle-group">
+                                    <label class="toggle-option" id="url-yes">
+                                        <input type="radio" name="external_url" value="1"> 🔗 Yes
+                                    </label>
+                                    <label class="toggle-option" id="url-no">
+                                        <input type="radio" name="external_url" value="0" checked> ❌ No
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Name == Username?</label>
+                                <div class="toggle-group">
+                                    <label class="toggle-option" id="nameeq-yes">
+                                        <input type="radio" name="name_eq_username" value="1"> ✅ Yes
+                                    </label>
+                                    <label class="toggle-option" id="nameeq-no">
+                                        <input type="radio" name="name_eq_username" value="0" checked> ❌ No
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Username/Name Section -->
+                    <div class="feature-section">
+                        <div class="feature-section-title"><i class="fas fa-at"></i> Username & Name Analysis</div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Username</label>
+                                <input type="text" id="username_str" placeholder="e.g. john123"
+                                       class="form-input" oninput="calcUsernameRatio()">
+                                <div class="input-help" id="username_ratio_display">Ratio: 0.00 &nbsp;(digits &divide; length)</div>
+                                <input type="hidden" name="nums_length_username" id="nums_length_username" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" id="fullname_str" placeholder="e.g. John Smith"
+                                       class="form-input" oninput="calcFullnameRatio()">
+                                <div class="input-help" id="fullname_ratio_display">Ratio: 0.00 &nbsp;(digits &divide; length)</div>
+                                <input type="hidden" name="nums_length_fullname" id="nums_length_fullname" value="0">
+                            </div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Full Name Words Count</label>
+                                <input type="number" name="fullname_words" id="fullname_words"
+                                       class="form-input" value="0" min="0" max="20" required readonly
+                                       style="background:rgba(99,102,241,0.05); cursor:not-allowed;">
+                                <div class="input-help">Auto-counted from Full Name above</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Bio / Description</label>
+                                <input type="text" id="description_str" placeholder="Enter bio text here..."
+                                       class="form-input" oninput="calcDescLength()">
+                                <div class="input-help" id="desc_length_display">Length: 0 characters</div>
+                                <input type="hidden" name="description_length" id="description_length" value="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Section -->
+                    <div class="feature-section">
+                        <div class="feature-section-title"><i class="fas fa-chart-bar"></i> Activity Metrics</div>
+                        <div class="grid-3">
+                            <div class="form-group">
+                                <label class="form-label"># Posts</label>
+                                <input type="number" name="posts" id="posts"
+                                       class="form-input" value="0" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label"># Followers</label>
+                                <input type="number" name="followers" id="followers"
+                                       class="form-input" value="0" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label"># Follows</label>
+                                <input type="number" name="follows" id="follows"
+                                       class="form-input" value="0" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Model Selection -->
+                    <div class="feature-section">
+                        <div class="feature-section-title"><i class="fas fa-robot"></i> Choose Model</div>
+                        <select name="model" class="form-select">
+                            <option value="random_forest">🏆 Random Forest (91.67% accuracy)</option>
+                            <option value="svm">⚡ Support Vector Machine (87.50%)</option>
+                            <option value="neural_network">🧠 Neural Network (87.50%)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">
+                        <i class="fas fa-shield-halved"></i> Analyze Account
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Result Panel -->
+        <div>
+            {% if result %}
+            <div class="result-card animate-in {{ 'result-fake' if result.is_fake else 'result-real' }}">
+                <div class="result-icon">
+                    {% if result.is_fake %}
+                        🚫
+                    {% else %}
+                        ✅
+                    {% endif %}
+                </div>
+                <div class="result-label" style="color: {{ 'var(--red)' if result.is_fake else 'var(--green)' }};">
+                    {{ result.label }}
+                </div>
+                <div class="result-confidence">
+                    {{ result.confidence }}% confidence &middot; {{ result.model_name }}
+                </div>
+            </div>
+
+            <!-- Input Summary -->
+            <div class="card animate-in" style="margin-top: 1.25rem;">
+                <div class="card-title"><i class="fas fa-list-check"></i> Input Summary</div>
+                <div class="grid-2">
+                    <div class="metric-item">
+                        <span class="metric-label">Profile Pic</span>
+                        <span class="metric-value">{{ '✅ Yes' if result.input.profile_pic else '❌ No' }}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Private</span>
+                        <span class="metric-value">{{ '🔒 Yes' if result.input.private else '🌐 No' }}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">External URL</span>
+                        <span class="metric-value">{{ '🔗 Yes' if result.input.external_url else '❌ No' }}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Name=Username</span>
+                        <span class="metric-value">{{ '✅ Yes' if result.input.name_eq_username else '❌ No' }}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Nums/Username</span>
+                        <span class="metric-value mono">{{ result.input.nums_length_username }}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Nums/Fullname</span>
+                        <span class="metric-value mono">{{ result.input.nums_length_fullname }}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Name Words</span>
+                        <span class="metric-value mono">{{ result.input.fullname_words }}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Bio Length</span>
+                        <span class="metric-value mono">{{ result.input.description_length }}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Posts</span>
+                        <span class="metric-value mono">{{ result.input.posts }}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Followers</span>
+                        <span class="metric-value mono">{{ result.input.followers }}</span>
+                    </div>
+                    <div class="metric-item" style="grid-column: span 2;">
+                        <span class="metric-label">Follows</span>
+                        <span class="metric-value mono">{{ result.input.follows }}</span>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card animate-in" style="text-align: center; padding: 4rem 2rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">🔍</div>
+                <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Ready to Analyze</h3>
+                <p style="color: var(--text-dim); font-size: 0.9rem; line-height: 1.6;">
+                    Fill in the Instagram profile features on the left and click <strong>Analyze Account</strong>
+                    to detect if the account is fake or real.
+                </p>
+                <div style="margin-top: 2rem; padding: 1.25rem; background: rgba(99,102,241,0.05); border-radius: 12px; text-align: left;">
+                    <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--accent);">
+                        <i class="fas fa-lightbulb"></i> Features Analyzed
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-dim); line-height: 1.8;">
+                        Profile picture presence, username numeric ratio, full name analysis,
+                        bio length, external URL, privacy status, post count,
+                        follower count, and following count.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Toggle button logic
+document.querySelectorAll('.toggle-group').forEach(group => {
+    const options = group.querySelectorAll('.toggle-option');
+    options.forEach(opt => {
+        if (opt.querySelector('input').checked) opt.classList.add('active');
+        opt.addEventListener('click', () => {
+            options.forEach(o => o.classList.remove('active'));
+            opt.classList.add('active');
+            opt.querySelector('input').checked = true;
+        });
+    });
+});
+
+// ── Ratio Calculators ──────────────────────────────────────────
+function calcRatio(str) {
+    if (!str || str.length === 0) return 0;
+    const digits = (str.match(/[0-9]/g) || []).length;
+    return parseFloat((digits / str.length).toFixed(4));
+}
+
+function calcUsernameRatio() {
+    const val = document.getElementById('username_str').value;
+    const ratio = calcRatio(val);
+    document.getElementById('nums_length_username').value = ratio;
+    document.getElementById('username_ratio_display').innerHTML =
+        `Ratio: <strong style="color:var(--accent)">${ratio.toFixed(2)}</strong> &nbsp;` +
+        `(${(val.match(/[0-9]/g)||[]).length} digits &divide; ${val.length} chars)`;
+}
+
+function calcFullnameRatio() {
+    const val = document.getElementById('fullname_str').value;
+    const ratio = calcRatio(val);
+    document.getElementById('nums_length_fullname').value = ratio;
+    document.getElementById('fullname_ratio_display').innerHTML =
+        `Ratio: <strong style="color:var(--accent)">${ratio.toFixed(2)}</strong> &nbsp;` +
+        `(${(val.match(/[0-9]/g)||[]).length} digits &divide; ${val.length} chars)`;
+
+    // Auto-count words
+    const words = val.trim() === '' ? 0 : val.trim().split(/\s+/).length;
+    document.getElementById('fullname_words').value = words;
+}
+
+function calcDescLength() {
+    const val = document.getElementById('description_str').value;
+    document.getElementById('description_length').value = val.length;
+    document.getElementById('desc_length_display').innerHTML =
+        `Length: <strong style="color:var(--accent)">${val.length}</strong> characters`;
+}
+
+// ── Example data (string versions for display) ─────────────────
+const examples = {
+    real1: {
+        profile_pic:1, private:0, external_url:0, name_eq_username:0,
+        username_str: 'user123abc',           // 0.27 ratio approx
+        fullname_str: '',                      // 0 words, 0 ratio
+        description_str: 'Photography lover. Travel addict. Based in NYC.',  // ~53 chars
+        posts:32, followers:1000, follows:955
+    },
+    real2: {
+        profile_pic:1, private:0, external_url:0, name_eq_username:0,
+        username_str: 'johnsmith',
+        fullname_str: 'John Smith',
+        description_str: 'Coffee. Code. Cats. Living the dream.',
+        posts:286, followers:2740, follows:533
+    },
+    fake1: {
+        profile_pic:0, private:0, external_url:0, name_eq_username:0,
+        username_str: 'x8k3m2',               // high digit ratio ~0.62
+        fullname_str: '',
+        description_str: '',
+        posts:0, followers:4, follows:72
+    },
+    fake2: {
+        profile_pic:0, private:0, external_url:0, name_eq_username:0,
+        username_str: 'abc123',               // 0.50 ratio
+        fullname_str: 'Bot',
+        description_str: '',
+        posts:0, followers:0, follows:49
+    },
+};
+
+function fillExample(key) {
+    const d = examples[key];
+
+    // Fill string inputs and trigger calculations
+    document.getElementById('username_str').value = d.username_str;
+    calcUsernameRatio();
+
+    document.getElementById('fullname_str').value = d.fullname_str;
+    calcFullnameRatio();
+
+    document.getElementById('description_str').value = d.description_str;
+    calcDescLength();
+
+    document.getElementById('posts').value = d.posts;
+    document.getElementById('followers').value = d.followers;
+    document.getElementById('follows').value = d.follows;
+
+    function setToggle(name, value) {
+        document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+            const parent = r.parentElement;
+            if (r.value == value) { r.checked = true; parent.classList.add('active'); }
+            else { r.checked = false; parent.classList.remove('active'); }
+        });
+    }
+    setToggle('profile_pic', d.profile_pic);
+    setToggle('private', d.private);
+    setToggle('external_url', d.external_url);
+    setToggle('name_eq_username', d.name_eq_username);
+}
+</script>
+{% endblock %}
