@@ -1,26 +1,11 @@
 fake/
-# Dataset files
-data/
-
-# Trained model files
-models/
-
-# Flask instance folder (SQLite database)
 instance/
-
-# Python cache
 __pycache__/
 *.pyc
 *.pyo
-
-# Jupyter Notebook checkpoints
 .ipynb_checkpoints/
-
-# Environment files
 .env
 venv/
 env/
-
-# OS files
 .DS_Store
 Thumbs.db

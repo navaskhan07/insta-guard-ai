@@ -1,11 +1,4 @@
-"""
-Instagram Fake Account Detector - Flask Web Application
-Models: Random Forest (91.67%), SVM (87.50%), Neural Network (87.50%)
-"""
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
-import json
+import os, json
 import numpy as np
 import joblib
 from functools import wraps
@@ -14,57 +7,41 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
-import tensorflow as tf
-tf.get_logger().setLevel('ERROR')
-
 app = Flask(__name__)
-app.secret_key = 'insta-fakeguard-2025-xK9mP3qR'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///fakeguard.db'
+app.secret_key = os.environ.get('SECRET_KEY', 'instaGuard-secret-2025')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:////tmp/fakeguard.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-
-# ---- DB Models ----
 class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    fullname = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
+    id         = db.Column(db.Integer, primary_key=True)
+    fullname   = db.Column(db.String(100), nullable=False)
+    email      = db.Column(db.String(120), unique=True, nullable=False)
+    password   = db.Column(db.String(200), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-
 class PredictionLog(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     model_used = db.Column(db.String(50))
     input_data = db.Column(db.Text)
-    result = db.Column(db.String(20))
+    result     = db.Column(db.String(20))
     confidence = db.Column(db.Float)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-
-# ---- Load Models ----
 MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models')
-rf_model = joblib.load(os.path.join(MODELS_DIR, 'random_forest.pkl'))
+rf_model  = joblib.load(os.path.join(MODELS_DIR, 'random_forest.pkl'))
 svm_model = joblib.load(os.path.join(MODELS_DIR, 'svm.pkl'))
-nn_model = tf.keras.models.load_model(os.path.join(MODELS_DIR, 'neural_network.keras'))
-scaler = joblib.load(os.path.join(MODELS_DIR, 'scaler.pkl'))
+nn_model  = joblib.load(os.path.join(MODELS_DIR, 'neural_network.pkl'))
+scaler    = joblib.load(os.path.join(MODELS_DIR, 'scaler.pkl'))
 
 with open(os.path.join(MODELS_DIR, 'results.json')) as f:
     model_results = json.load(f)
 
-# Jinja filter for JSON parsing in templates
 @app.template_filter('from_json')
 def from_json_filter(s):
-    try:
-        return json.loads(s)
-    except:
-        return {}
-
-FEATURES = ['profile pic', 'nums/length username', 'fullname words',
-            'nums/length fullname', 'name==username', 'description length',
-            'external URL', 'private', '#posts', '#followers', '#follows']
-
+    try: return json.loads(s)
+    except: return {}
 
 def login_required(f):
     @wraps(f)
@@ -75,22 +52,19 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-
-# ---- Routes ----
 @app.route('/')
 def index():
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
     return render_template('index.html')
 
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         fullname = request.form.get('fullname', '').strip()
-        email = request.form.get('email', '').strip().lower()
+        email    = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
-        confirm = request.form.get('confirm_password', '')
+        confirm  = request.form.get('confirm_password', '')
         if not fullname or not email or not password:
             flash('All fields are required.', 'danger')
             return redirect(url_for('register'))
@@ -111,21 +85,19 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html')
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email', '').strip().lower()
+        email    = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
-            session['user_id'] = user.id
+            session['user_id']   = user.id
             session['user_name'] = user.fullname
             flash(f'Welcome back, {user.fullname}!', 'success')
             return redirect(url_for('dashboard'))
         flash('Invalid email or password.', 'danger')
     return render_template('login.html')
-
 
 @app.route('/logout')
 def logout():
@@ -133,20 +105,18 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('index'))
 
-
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    user = User.query.get(session['user_id'])
-    logs = PredictionLog.query.filter_by(user_id=user.id) \
-        .order_by(PredictionLog.created_at.desc()).limit(10).all()
-    total = PredictionLog.query.filter_by(user_id=user.id).count()
+    user       = User.query.get(session['user_id'])
+    logs       = PredictionLog.query.filter_by(user_id=user.id)\
+                     .order_by(PredictionLog.created_at.desc()).limit(10).all()
+    total      = PredictionLog.query.filter_by(user_id=user.id).count()
     fake_count = PredictionLog.query.filter_by(user_id=user.id, result='FAKE').count()
     real_count = PredictionLog.query.filter_by(user_id=user.id, result='REAL').count()
     return render_template('dashboard.html', user=user, model_results=model_results,
                            logs=logs, total_predictions=total,
                            fake_count=fake_count, real_count=real_count)
-
 
 @app.route('/predict', methods=['GET', 'POST'])
 @login_required
@@ -154,83 +124,61 @@ def predict():
     result = None
     if request.method == 'POST':
         try:
-            input_data = {
-                'profile_pic': int(request.form.get('profile_pic', 0)),
-                'nums_length_username': float(request.form.get('nums_length_username', 0)),
-                'fullname_words': int(request.form.get('fullname_words', 0)),
-                'nums_length_fullname': float(request.form.get('nums_length_fullname', 0)),
-                'name_eq_username': int(request.form.get('name_eq_username', 0)),
-                'description_length': int(request.form.get('description_length', 0)),
-                'external_url': int(request.form.get('external_url', 0)),
-                'private': int(request.form.get('private', 0)),
-                'posts': int(request.form.get('posts', 0)),
-                'followers': int(request.form.get('followers', 0)),
-                'follows': int(request.form.get('follows', 0)),
-            }
-            model_choice = request.form.get('model', 'random_forest')
-
             features = np.array([[
-                input_data['profile_pic'],
-                input_data['nums_length_username'],
-                input_data['fullname_words'],
-                input_data['nums_length_fullname'],
-                input_data['name_eq_username'],
-                input_data['description_length'],
-                input_data['external_url'],
-                input_data['private'],
-                input_data['posts'],
-                input_data['followers'],
-                input_data['follows'],
+                int(request.form.get('profile_pic', 0)),
+                float(request.form.get('nums_length_username', 0)),
+                int(request.form.get('fullname_words', 0)),
+                float(request.form.get('nums_length_fullname', 0)),
+                int(request.form.get('name_eq_username', 0)),
+                int(request.form.get('description_length', 0)),
+                int(request.form.get('external_url', 0)),
+                int(request.form.get('private', 0)),
+                int(request.form.get('posts', 0)),
+                int(request.form.get('followers', 0)),
+                int(request.form.get('follows', 0)),
             ]])
+
+            model_choice = request.form.get('model', 'random_forest')
 
             if model_choice == 'random_forest':
                 prediction = rf_model.predict(features)[0]
-                proba = rf_model.predict_proba(features)[0]
+                proba      = rf_model.predict_proba(features)[0]
                 confidence = round(max(proba) * 100, 2)
                 model_name = 'Random Forest'
             elif model_choice == 'svm':
                 features_sc = scaler.transform(features)
-                prediction = svm_model.predict(features_sc)[0]
-                proba = svm_model.predict_proba(features_sc)[0]
-                confidence = round(max(proba) * 100, 2)
-                model_name = 'SVM'
+                prediction  = svm_model.predict(features_sc)[0]
+                proba       = svm_model.predict_proba(features_sc)[0]
+                confidence  = round(max(proba) * 100, 2)
+                model_name  = 'SVM'
             else:
                 features_sc = scaler.transform(features)
-                nn_pred = nn_model.predict(features_sc, verbose=0)
-                prediction = int(np.argmax(nn_pred[0]))
-                confidence = round(float(np.max(nn_pred[0])) * 100, 2)
-                model_name = 'Neural Network'
+                prediction  = nn_model.predict(features_sc)[0]
+                proba       = nn_model.predict_proba(features_sc)[0]
+                confidence  = round(max(proba) * 100, 2)
+                model_name  = 'Neural Network'
 
-            label = "FAKE" if prediction == 1 else "REAL"
-            result = {
-                'label': label,
-                'confidence': confidence,
-                'model_name': model_name,
-                'is_fake': prediction == 1,
-                'input': input_data
-            }
+            label  = "FAKE" if prediction == 1 else "REAL"
+            result = {'label': label, 'confidence': confidence,
+                      'model_name': model_name, 'is_fake': prediction == 1}
 
-            log = PredictionLog(
-                user_id=session['user_id'], model_used=model_name,
-                input_data=json.dumps(input_data), result=label, confidence=confidence
-            )
+            log = PredictionLog(user_id=session['user_id'], model_used=model_name,
+                                input_data=json.dumps({}), result=label, confidence=confidence)
             db.session.add(log)
             db.session.commit()
         except Exception as e:
             flash(f'Prediction error: {str(e)}', 'danger')
     return render_template('predict.html', result=result)
 
-
 @app.route('/history')
 @login_required
 def history():
-    logs = PredictionLog.query.filter_by(user_id=session['user_id']) \
-        .order_by(PredictionLog.created_at.desc()).all()
+    logs = PredictionLog.query.filter_by(user_id=session['user_id'])\
+               .order_by(PredictionLog.created_at.desc()).all()
     return render_template('history.html', logs=logs)
-
 
 with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=5000)
