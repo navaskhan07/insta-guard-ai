@@ -1,0 +1,20 @@
+{
+  "Random Forest": {
+    "train_accuracy": 100.0,
+    "test_accuracy": 91.67,
+    "cv_score": 93.22,
+    "roc_auc": 91.67
+  },
+  "SVM": {
+    "train_accuracy": 90.62,
+    "test_accuracy": 87.5,
+    "cv_score": 90.09,
+    "roc_auc": 87.5
+  },
+  "Neural Network": {
+    "train_accuracy": 92.88,
+    "test_accuracy": 89.17,
+    "cv_score": 89.17,
+    "roc_auc": 89.17
+  }
+}
